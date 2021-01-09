@@ -170,25 +170,33 @@ build() {
         -p 9000:8080 \
         $DOCKER_RUNNING_CONTAINER_NAME:latest
 
+    purple "Give it some time to warm up"
     🌷 sleep 5
 
     purple "Testing endpoint"
     🌷 curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
         -d "test"
 
+    echo
     purple "Fetching log"
     🌷 docker logs $DOCKER_IMAGE_TAG
 
-    purple "  ENTER  to delete local Docker container instance and quit."
-    purple "  s      to ssh into box first (use CTRL+d to quit)"
-    purple "  CTRL+c to quit"
-    purple "Hit a key..."
-    # head -n 1 >/dev/null
-    read -rsn1 input
-    if [ "$input" = "s" ]; then
-        docker exec -it $DOCKER_IMAGE_TAG /bin/sh
+    purple "`cat << EOF
+        ENTER  to delete local Docker container instance and quit.
+        s      to ssh into box first (use CTRL+d to quit).
+        CTRL+c to quit
+
+        Hit a key...
+EOF
+`"
+
+    read -rsn1 keystroke
+    if [ "$keystroke" = "s" ]; then
+        purple "Launching shell"
+        🌷 docker exec -it $DOCKER_IMAGE_TAG /bin/sh
     fi
 
+    purple "Destroy running container"
     🌷 docker rm -f $DOCKER_RUNNING_CONTAINER_NAME
 }
 
@@ -264,7 +272,7 @@ deploy() {
 
         if [ ! -f $response_file ]; then
             echo -en "${RED}x${RESET}"
-            sleep 1s
+            # sleep 1s
             continue
         fi
 
