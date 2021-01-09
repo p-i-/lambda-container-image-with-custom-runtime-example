@@ -174,13 +174,21 @@ build() {
 
     purple "Testing endpoint"
     🌷 curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
-        -d "Hello from Container Lambda!"
+        -d "test"
 
     purple "Fetching log"
     🌷 docker logs $DOCKER_IMAGE_TAG
 
-    purple "Deleting local Docker container instance. ENTER to do it, CTRL+c to quit"
-    head -n 1 >/dev/null
+    purple "  ENTER  to delete local Docker container instance and quit."
+    purple "  s      to ssh into box first (use CTRL+d to quit)"
+    purple "  CTRL+c to quit"
+    purple "Hit a key..."
+    # head -n 1 >/dev/null
+    read -rsn1 input
+    if [ "$input" = "s" ]; then
+        docker exec -it $DOCKER_IMAGE_TAG /bin/sh
+    fi
+
     🌷 docker rm -f $DOCKER_RUNNING_CONTAINER_NAME
 }
 
@@ -241,7 +249,7 @@ deploy() {
 
     purple "Repeatedly test against endpoint"
 
-    nTries=60
+    nTries=30
     response_file="response.json"
 
     for (( i=1; i<=$nTries; i++ )); do
@@ -249,7 +257,7 @@ deploy() {
         aws lambda invoke \
             --function-name $AWS_LAMBDAFUNC_NAME \
             --cli-binary-format raw-in-base64-out \
-            --payload '{ "message" : "Hello from Container Lambda" }' \
+            --payload "test" \
             $response_file \
             >/dev/null 2>&1 \
             && :
