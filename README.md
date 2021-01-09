@@ -5,7 +5,38 @@ This is a brief example how to define a Lambda function with bash using Amazon L
 See the blog post for more information:
 [aripalo.com/blog/2020/aws-lambda-container-image-support/](https://aripalo.com/blog/2020/aws-lambda-container-image-support/)
 
-## Usage
+
+## `pipeline.sh` (created by pi@pipad.org 9 Jan 2021)
+I have implemented the instructions in bash.
+This makes it much easier to see the process flow.
+Also it may serve as a decent foundation for a more advanced pipeline (it implements a rudimentary local/staging/production)
+
+### Setup
+Modify the ENV-vars in `pipeline.sh`
+
+### Build Image (and test against local)
+```
+pipeline.sh build staging
+```
+- Builds build local docker image.
+- Tests the container image by spinning up an instance, sending a CURL request, then destroying the instance.
+
+You can CTRL+c at the prompt and `docker exec -it ${container_id} /bin/sh` to get into the box if you like.
+
+### Deploy to AWS (and test against remote)
+```
+pipeline.sh deploy staging
+```
+- Creates a repo if it doesn't exist
+- Logs into AWS ECR Docker repository
+- Tags Docker Image (specific format, so AWS Lambda can find it)
+- Pushes image to remote
+- Tests
+    - If there is a running lambda function with this name, delete it.
+    - Create lambda function
+    - test against endpoint, printing response
+
+## Usage (Original document)
 
 (Very briefly, again see the blog post for more.)
 
