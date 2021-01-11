@@ -1,11 +1,11 @@
+# Use Amazon Linux 2 (It's based on CentOS) as base image
 FROM amazon/aws-lambda-provided:al2
 
-WORKDIR /var/runtime/
-COPY bootstrap bootstrap
-RUN chmod 755 bootstrap
+COPY bootstrap   /var/runtime/bootstrap
+COPY function.sh /var/task/function.sh
 
-WORKDIR /var/task/
-COPY function.sh function.sh
-RUN chmod 755 function.sh
+RUN chmod u+rx \
+    /var/runtime/bootstrap \
+    /var/task/function.sh
 
 CMD [ "function.sh.handler" ]

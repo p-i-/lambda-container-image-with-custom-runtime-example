@@ -1,7 +1,13 @@
 function handler () {
-  EVENT_DATA=$1
-  echo "$EVENT_DATA" 1>&2;
-  RESPONSE="Echoing request: '$EVENT_DATA'"
+    EVENT_DATA=$1
+    echo "$EVENT_DATA" 1>&2
 
-  echo $RESPONSE
+    echo "Event Data:" > /tmp/output.log
+    echo "    $EVENT_DATA" >> /tmp/output.log
+    echo "🌸 Response:" >> /tmp/output.log
+
+    echo "contents" > /tmp/generated-file.txt
+
+    RESPONSE="$(cat /tmp/output.log)"
+    echo "$RESPONSE"
 }

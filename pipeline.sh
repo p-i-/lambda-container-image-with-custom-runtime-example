@@ -1,5 +1,28 @@
 #!/bin/bash
 
+syntax="
+Syntax:
+    magic.sh Command [EnvType] [Options]
+
+    EnvType: (local) staging production
+
+    Command:
+        build local|staging|production
+            - builds image
+            - runs it
+            - tests with curl
+
+        deploy staging|production
+            - builds image
+            - runs it
+            - tests with curl
+            - deploys to AWS
+            - tests with curl
+        
+        test staging|production
+            - tests url
+"
+
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
 #  H E L P E R S
 # = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
@@ -61,6 +84,8 @@ env_type=${2:-local}  # (local) | staging | production
 
 AWS_ECR_REPO_NAME="lambdabash-${env_type}"
 AWS_LAMBDAFUNC_NAME="lambdabash-${env_type}"
+LAMBDA_MEMORY_MB=1024
+LAMBDA_TIMEOUT_S=30
 DOCKER_IMAGE_TAG="lambdabash-${env_type}"
 DOCKER_RUNNING_CONTAINER_NAME="lambdabash-${env_type}"
 
@@ -84,26 +109,7 @@ main() {
     set -e
 
     if [ -z $cmd ] || [  $cmd = "help" ]; then
-        green "`cat << EOF
-Syntax:
-    magic.sh Command [EnvType] [Options]
-
-    EnvType: (local) staging production
-
-    Command:
-        build local|staging|production
-            - builds image
-            - runs it
-            - tests with curl
-
-        deploy staging|production
-            - builds image
-            - runs it
-            - tests with curl
-            - deploys to AWS
-            - tests with curl
-EOF
-        `"
+        green "$syntax"
         exit 0
     fi
 
@@ -117,6 +123,9 @@ EOF
 
     elif [ $cmd = "deploy" ]; then
         deploy
+
+    elif [ $cmd = "test" ]; then
+        test
 
     else
         red "Unknown command. 'pipeline.sh help' for available commands."
@@ -177,24 +186,37 @@ build() {
     🌷 curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" \
         -d "test"
 
-    echo
-    purple "Fetching log"
-    🌷 docker logs $DOCKER_IMAGE_TAG
+    while true;
+    do
+        purple "`cat << EOF
+            l      to inspect log
+            v      to view generated file
+            s      to ssh into box first (use CTRL+d to quit shell).
+            q      to delete local Docker container instance and quit.
+            CTRL+c to quit without deleting container instance
 
-    purple "`cat << EOF
-        ENTER  to delete local Docker container instance and quit.
-        s      to ssh into box first (use CTRL+d to quit).
-        CTRL+c to quit
-
-        Hit a key...
+            Hit a key...
 EOF
 `"
+        read -rsn1 keystroke
 
-    read -rsn1 keystroke
-    if [ "$keystroke" = "s" ]; then
-        purple "Launching shell"
-        🌷 docker exec -it $DOCKER_IMAGE_TAG /bin/sh
-    fi
+        if [ "$keystroke" = "v" ]; then
+            purple "Viewing /tmp/generated-file.txt"
+            🌷 docker cp $DOCKER_IMAGE_TAG:/tmp/generated-file.txt /tmp/generated-file.txt
+            🌷 cat /tmp/generated-file.txt
+
+        elif [ "$keystroke" = "l" ]; then
+            purple "Fetching log"
+            🌷 docker logs $DOCKER_IMAGE_TAG
+
+        elif [ "$keystroke" = "s" ]; then
+            purple "Launching shell"
+            🌷 docker exec -it $DOCKER_IMAGE_TAG /bin/sh
+
+        elif [ "$keystroke" = "q" ]; then
+            break
+        fi
+    done
 
     purple "Destroy running container"
     🌷 docker rm -f $DOCKER_RUNNING_CONTAINER_NAME
@@ -229,6 +251,7 @@ deploy() {
             $lambda_uri
 
     full_url=$lambda_uri/${AWS_ECR_REPO_NAME}:latest
+    red "Lambda URL: $lambda_uri/${AWS_ECR_REPO_NAME}:latest"
 
     # docker tag SOURCE_IMAGE[:TAG] TARGET_IMAGE[:TAG]
     purple "Tagging Docker image"
@@ -250,11 +273,19 @@ deploy() {
         --role $role_arn \
         --code ImageUri=$full_url \
         --package-type Image \
-        --memory-size 1024 \
-        --timeout 30 \
+        --memory-size $LAMBDA_MEMORY_MB \
+        --timeout $LAMBDA_TIMEOUT_S \
         --publish \
         | cat  # avoid requiring user interaction for multipage output
 
+    # TODO: 
+    #     Validate it uploaded ok
+    #         aws lambda get-function --function-name lambdabash-staging
+
+    test
+}
+
+test() {
     purple "Repeatedly test against endpoint"
 
     nTries=30
@@ -265,7 +296,7 @@ deploy() {
         aws lambda invoke \
             --function-name $AWS_LAMBDAFUNC_NAME \
             --cli-binary-format raw-in-base64-out \
-            --payload "test" \
+            --payload '{ "message" : "Hello from Container Lambda" }' \
             $response_file \
             >/dev/null 2>&1 \
             && :
