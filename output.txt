@@ -1,0 +1,180 @@
+
+🧢 pi@pPro18 ~/Desktop/lambda-container-image-with-custom-runtime-example (main)
+> b
+🏹 AWS_ECR_REPO_NAME: lambdabash-staging
+🏹 AWS_LAMBDAFUNC_NAME: lambdabash-staging
+🏹 DOCKER_IMAGE_TAG: lambdabash-staging
+🏹 DOCKER_RUNNING_CONTAINER_NAME: lambdabash-staging
+
+Checking CLI tools
+docker exists
+aws exists
+
+Building Docker image
+🌷 docker build -t lambdabash-staging .
+Sending build context to Docker daemon  11.78kB
+Step 1/5 : FROM amazon/aws-lambda-provided:al2
+ ---> ab835f8891ab
+Step 2/5 : COPY bootstrap   /var/runtime/bootstrap
+ ---> Using cache
+ ---> 4f6e05e3c0ac
+Step 3/5 : COPY function.sh /var/task/function.sh
+ ---> Using cache
+ ---> 88382b205469
+Step 4/5 : RUN chmod u+rx     /var/runtime/bootstrap     /var/task/function.sh
+ ---> Using cache
+ ---> d6bfe514c581
+Step 5/5 : CMD [ "function.sh.handler" ]
+ ---> Using cache
+ ---> d97d24c93f6c
+Successfully built d97d24c93f6c
+Successfully tagged lambdabash-staging:latest
+
+remove if running container exists (safe to ignore error, it means local container not found)
+Error: No such container: lambdabash-staging
+
+Running Docker image in daemon mode
+🌷 docker run -d --name lambdabash-staging -p 9000:8080 lambdabash-staging:latest
+4c31492c05bf59905fb1bbcda1132c93933489c71f23fe3e8bf41ae0e9209df5
+
+Give it some time to warm up
+🌷 sleep 5
+
+Testing endpoint
+🌷 curl -XPOST http://localhost:9000/2015-03-31/functions/function/invocations -d test
+Event Data:
+    test
+🌸 Response:
+            l      to inspect log
+            v      to view generated file
+            s      to ssh into box first (use CTRL+d to quit shell).
+            q      to delete local Docker container instance and quit.
+            CTRL+c to quit without deleting container instance
+
+            Hit a key...
+
+Fetching log
+🌷 docker logs lambdabash-staging
+time="2021-01-11T23:19:23.603" level=info msg="exec '/var/runtime/bootstrap' (cwd=/var/task, handler=)"
+time="2021-01-11T23:19:28.658" level=info msg="extensionsDisabledByLayer(/opt/disable-extensions-jwigqn8j) -> stat /opt/disable-extensions-jwigqn8j: no such file or directory"
+time="2021-01-11T23:19:28.659" level=warning msg="Cannot list external agents" error="open /opt/extensions: no such file or directory"
+START RequestId: 1bd2d2c8-592c-449f-ac06-5fdffd577b8a Version: $LATEST
+test
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100    51  100    16  100    35  16000  35000 --:--:-- --:--:-- --:--:-- 51000
+{"status":"OK"}
+END RequestId: 1bd2d2c8-592c-449f-ac06-5fdffd577b8a
+REPORT RequestId: 1bd2d2c8-592c-449f-ac06-5fdffd577b8a  Init Duration: 0.88 ms  Duration: 35.51 ms  Billed Duration: 100 ms Memory Size: 3008 MB    Max Memory Used: 3008 MB    
+
+            l      to inspect log
+            v      to view generated file
+            s      to ssh into box first (use CTRL+d to quit shell).
+            q      to delete local Docker container instance and quit.
+            CTRL+c to quit without deleting container instance
+
+            Hit a key...
+
+Viewing /tmp/generated-file.txt
+🌷 docker cp lambdabash-staging:/tmp/generated-file.txt /tmp/generated-file.txt
+🌷 cat /tmp/generated-file.txt
+contents
+
+            l      to inspect log
+            v      to view generated file
+            s      to ssh into box first (use CTRL+d to quit shell).
+            q      to delete local Docker container instance and quit.
+            CTRL+c to quit without deleting container instance
+
+            Hit a key...
+
+Launching shell
+🌷 docker exec -it lambdabash-staging /bin/sh
+sh-4.2# pwd
+/var/task
+sh-4.2# exit
+
+            l      to inspect log
+            v      to view generated file
+            s      to ssh into box first (use CTRL+d to quit shell).
+            q      to delete local Docker container instance and quit.
+            CTRL+c to quit without deleting container instance
+
+            Hit a key...
+
+Destroy running container
+🌷 docker rm -f lambdabash-staging
+lambdabash-staging
+
+🧢 pi@pPro18 ~/Desktop/lambda-container-image-with-custom-runtime-example (main)
+> d
+🏹 AWS_ECR_REPO_NAME: lambdabash-staging
+🏹 AWS_LAMBDAFUNC_NAME: lambdabash-staging
+🏹 DOCKER_IMAGE_TAG: lambdabash-staging
+🏹 DOCKER_RUNNING_CONTAINER_NAME: lambdabash-staging
+
+Checking CLI tools
+docker exists
+aws exists
+
+Checking if repo exists on AWS ECR (ignore error)
+Found AWS ECR repo: lambdabash-staging
+
+Extracting URI for repo
+Lambda URI: 795730031374.dkr.ecr.us-east-1.amazonaws.com
+
+Logging into AWS ECR Docker repository
+🌷 aws ecr get-login-password | docker login --username AWS --password-stdin 795730031374.dkr.ecr.us-east-1.amazonaws.com
+Login Succeeded
+
+Lambda URL: 795730031374.dkr.ecr.us-east-1.amazonaws.com/lambdabash-staging:latest
+
+Tagging Docker image
+🌷 docker tag lambdabash-staging:latest 795730031374.dkr.ecr.us-east-1.amazonaws.com/lambdabash-staging:latest
+
+Pushing Docker image
+🌷 docker push 795730031374.dkr.ecr.us-east-1.amazonaws.com/lambdabash-staging:latest
+The push refers to repository [795730031374.dkr.ecr.us-east-1.amazonaws.com/lambdabash-staging]
+e1ba5d0da07d: Layer already exists 
+4c8fb36287d3: Layer already exists 
+5caad7af2ac7: Layer already exists 
+d6fa53d6caa6: Layer already exists 
+0d19fb1f5f09: Layer already exists 
+614a83057fc8: Layer already exists 
+f2342b1247df: Layer already exists 
+latest: digest: sha256:606e2ab8ab4c1832ba2ae47f681dfb51dbcc44ce4c3f3562eea1224b5a3ce5a7 size: 1778
+
+If there is a running lambda function with this name, delete it. 
+
+Create lambda function
+🌷 aws lambda create-function --function-name lambdabash-staging --role arn:aws:iam::795730031374:role/service-role/ls-lambda-role-ka10n7ab --code ImageUri=795730031374.dkr.ecr.us-east-1.amazonaws.com/lambdabash-staging:latest --package-type Image --memory-size 1024 --timeout 30 --publish
+{
+    "FunctionName": "lambdabash-staging",
+    "FunctionArn": "arn:aws:lambda:us-east-1:795730031374:function:lambdabash-staging",
+    "Role": "arn:aws:iam::795730031374:role/service-role/ls-lambda-role-ka10n7ab",
+    "CodeSize": 0,
+    "Description": "",
+    "Timeout": 30,
+    "MemorySize": 1024,
+    "LastModified": "2021-01-11T23:21:11.113+0000",
+    "CodeSha256": "606e2ab8ab4c1832ba2ae47f681dfb51dbcc44ce4c3f3562eea1224b5a3ce5a7",
+    "Version": "46",
+    "TracingConfig": {
+        "Mode": "PassThrough"
+    },
+    "RevisionId": "a2d423be-0f57-4c61-ac14-3ca1877157f5",
+    "State": "Pending",
+    "StateReason": "The function is being created.",
+    "StateReasonCode": "Creating",
+    "PackageType": "Image"
+}
+
+Repeatedly test against endpoint
+xxxxxxxxxxxxx✅
+Response (not valid JSON):
+Event Data:
+    { "message" : "Hello from Container Lambda" }
+🌸 Response:
+
+🧢 pi@pPro18 ~/Desktop/lambda-container-image-with-custom-runtime-example (main)
+> 
